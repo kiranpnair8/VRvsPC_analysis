@@ -11,14 +11,14 @@
 set -eo pipefail
 
 PROJECT_ROOT=/home/rizk_lab/shared/kiran/VRvsPC_analysis
-DATA_DIR=/REPLACE/WITH/RAW/CSV/PATH
+SOURCE_NPZ="$PROJECT_ROOT/out/pc_vr_verification_dataset_lphp10_50.npz"
 
 mkdir -p "$PROJECT_ROOT/jobs/logs"
 mkdir -p "$PROJECT_ROOT/out/cv5/results"
 
-if [ ! -d "$DATA_DIR" ]; then
-  echo "ERROR: DATA_DIR does not exist: $DATA_DIR"
-  echo "Edit jobs/build_cv5_dataset.sh and set DATA_DIR to the raw CSV folder."
+if [ ! -f "$SOURCE_NPZ" ]; then
+  echo "ERROR: SOURCE_NPZ does not exist: $SOURCE_NPZ"
+  echo "The CV5 builder expects the existing preprocessed verification NPZ."
   exit 1
 fi
 
@@ -54,7 +54,7 @@ print("braindecode version:", getattr(braindecode, "__version__", "unknown"))
 PY
 
 python cv_build_verification_dataset.py \
-  --data_dir "$DATA_DIR" \
+  --source_npz "$SOURCE_NPZ" \
   --out_dir "$PROJECT_ROOT/out/cv5" \
   --seed 42 \
   --n_imposters 3
