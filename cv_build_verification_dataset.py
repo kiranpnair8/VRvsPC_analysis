@@ -12,17 +12,6 @@ from pathlib import Path
 
 import numpy as np
 
-from build_verification_dataset import (
-    BAND_HIGH,
-    BAND_LOW,
-    CHANNELS,
-    FILTER_ORDER,
-    FS,
-    NOTCH_FREQ,
-    POST_SAMPLES,
-    PRE_SAMPLES,
-    combine_epochs_by_subject,
-)
 from cv5_split_utils import (
     FoldConfig,
     gather_epoch_split,
@@ -37,7 +26,11 @@ from cv5_split_utils import (
 
 def parse_args():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data_dir", required=True, help="Folder containing Subject_XX_PC.csv and Subject_XX_VR.csv")
+    ap.add_argument(
+        "--source_npz",
+        default="./out/pc_vr_verification_dataset_lphp10_50.npz",
+        help="Existing preprocessed verification NPZ to reconstruct epoch-level CV data from",
+    )
     ap.add_argument("--out_dir", default="./out/cv5", help="Output directory for CV datasets and indices")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--n_imposters", type=int, default=3)
@@ -45,13 +38,107 @@ def parse_args():
     return ap.parse_args()
 
 
+def load_source_meta(source):
+    if "meta_json" not in source:
+        return {}
+    value = source["meta_json"]
+    if hasattr(value, "item"):
+        value = value.item()
+    return json.loads(str(value))
+
+
+def as_epoch_tbc(X, ch_names):
+    """Convert source verification trials from [B,C,T] to internal [B,T,C]."""
+    X = np.asarray(X, dtype=np.float32)
+    if X.ndim != 3:
+        raise ValueError(f"Expected 3D X array, found shape {X.shape}")
+
+    n_channels = len(ch_names)
+    if X.shape[1] == n_channels:
+        return np.transpose(X, (0, 2, 1)).astype(np.float32)
+    if X.shape[2] == n_channels:
+        return X.astype(np.float32)
+    raise ValueError(f"Cannot infer channel axis for shape {X.shape} and {n_channels} channels")
+
+
+def reconstruct_env_epochs(source, env, ch_names, expected_total):
+    split_specs = [("tr", 78), ("va", 18), ("te", 24)]
+    split_arrays = {}
+    subjects = set()
+
+    for split, _ in split_specs:
+        y = np.asarray(source[f"y{split}_{env}"], dtype=np.int32)
+        cid = np.asarray(source[f"cid_{split}_{env}"], dtype=np.int32)
+        X = as_epoch_tbc(source[f"X{split}_{env}"], ch_names)
+        subjects.update(cid[y == 1].astype(int).tolist())
+        split_arrays[split] = (X, y, cid)
+
+    X_all, y_all = [], []
+    reconstruction_rows = []
+    for subject in sorted(subjects):
+        pieces = []
+        for split, expected_split_count in split_specs:
+            X, y, cid = split_arrays[split]
+            mask = (y == 1) & (cid == subject)
+            count = int(mask.sum())
+            if count != expected_split_count:
+                raise ValueError(
+                    f"{env} subject {subject} split {split}: expected {expected_split_count} "
+                    f"genuine epochs, found {count}"
+                )
+            pieces.append(X[mask])
+            reconstruction_rows.append(
+                {
+                    "env": env,
+                    "subject": subject,
+                    "source_split": split,
+                    "genuine_epochs": count,
+                }
+            )
+
+        X_subject = np.concatenate(pieces, axis=0)
+        if X_subject.shape[0] != expected_total:
+            raise ValueError(
+                f"{env} subject {subject}: expected {expected_total} reconstructed genuine epochs, "
+                f"found {X_subject.shape[0]}"
+            )
+        X_all.append(X_subject)
+        y_all.append(np.full((X_subject.shape[0],), subject, dtype=np.int32))
+
+    if not X_all:
+        raise ValueError(f"No genuine epochs reconstructed for {env}")
+    return np.concatenate(X_all, axis=0), np.concatenate(y_all, axis=0), reconstruction_rows
+
+
 def main():
     args = parse_args()
-    data_dir = Path(args.data_dir)
+    source_npz = Path(args.source_npz)
+    if not source_npz.exists():
+        raise FileNotFoundError(f"source_npz does not exist: {source_npz}")
+
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    X_pc, y_pc, X_vr, y_vr, subject_map = combine_epochs_by_subject(data_dir)
+    source = np.load(source_npz, allow_pickle=True)
+    source_meta = load_source_meta(source)
+    ch_names = source_meta.get(
+        "ch_names",
+        ["Fp1", "Fp2", "Fc5", "Fz", "Fc6", "T7", "Cz", "T8", "P7", "P3", "Pz", "P4", "P8", "O1", "Oz", "O2"],
+    )
+    subject_map = source_meta.get("subject_map", {})
+    X_pc, y_pc, pc_reconstruction = reconstruct_env_epochs(
+        source,
+        "pc",
+        ch_names,
+        args.epochs_per_subject_env,
+    )
+    X_vr, y_vr, vr_reconstruction = reconstruct_env_epochs(
+        source,
+        "vr",
+        ch_names,
+        args.epochs_per_subject_env,
+    )
+
     config = FoldConfig(
         seed=args.seed,
         n_imposters=args.n_imposters,
@@ -113,12 +200,17 @@ def main():
     pd.DataFrame(supervised_index_rows).to_csv(trial_csv, index=False)
 
     meta = {
-        "fs": FS,
-        "epoch_window_sec": [-(PRE_SAMPLES / FS), POST_SAMPLES / FS],
-        "epoch_samples": PRE_SAMPLES + POST_SAMPLES,
-        "notch_freq": NOTCH_FREQ,
-        "band": [BAND_LOW, BAND_HIGH],
-        "filter_order": FILTER_ORDER,
+        "source": "reconstructed_from_preprocessed_verification_npz_genuine_trials_only",
+        "source_npz": str(source_npz),
+        "source_dataset_name": source_npz.name,
+        "preprocessing": "No filtering, baseline correction, z-scoring, or resampling was applied by this CV5 builder.",
+        "source_reconstruction": pc_reconstruction + vr_reconstruction,
+        "fs": source_meta.get("fs"),
+        "epoch_window_sec": source_meta.get("epoch_window_sec"),
+        "epoch_samples": int(X_pc.shape[1]),
+        "notch_freq": source_meta.get("notch_freq"),
+        "band": source_meta.get("band"),
+        "filter_order": source_meta.get("filter_order"),
         "split_counts": {
             "train": config.train_epochs,
             "val": config.val_epochs,
@@ -129,7 +221,7 @@ def main():
         "n_imposters": args.n_imposters,
         "seed": args.seed,
         "subject_map": subject_map,
-        "ch_names": CHANNELS,
+        "ch_names": ch_names,
         "fold_indices_json": str(indices_json),
         "fold_indices_csv": str(indices_csv),
         "supervised_trial_indices_csv": str(trial_csv),
@@ -153,6 +245,7 @@ def main():
         meta_json=json.dumps(meta),
     )
     print(f"Saved CV5 dataset: {out_path}")
+    print(f"Reconstructed genuine epochs from: {source_npz}")
     print(f"Saved fold indices: {indices_json}")
     print(f"Saved supervised trial indices: {trial_csv}")
 
