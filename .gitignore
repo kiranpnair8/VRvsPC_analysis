@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+.venv311/
+venv/
+env/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local datasets / generated arrays
+out/
+*.npz
+
+# Model weights
+models/**/model.safetensors
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+
+# Logs / temp files
+*.log
+*.tmp
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.7z
+
+# Jupyter
+.ipynb_checkpoints/
