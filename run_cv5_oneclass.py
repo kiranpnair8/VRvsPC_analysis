@@ -196,6 +196,7 @@ def main():
     set_seed(args.seed)
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    args.device = torch.device(args.device or ("cuda" if torch.cuda.is_available() else "cpu"))
 
     npz = np.load(args.npz, allow_pickle=True)
     meta = json.loads(str(npz["meta_json"]))
