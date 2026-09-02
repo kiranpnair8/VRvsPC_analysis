@@ -37,4 +37,6 @@ models/**/model.safetensors
 *.7z
 
 # Jupyter
-.ipynb_checkpoints/
+.ipynb_checkpoints/jobs/logs/*.out
+jobs/logs/*.err
+jobs/logs/*.out
