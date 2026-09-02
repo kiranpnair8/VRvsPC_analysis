@@ -69,5 +69,6 @@ python run_cv5_supervised.py \
   --npz "$PROJECT_ROOT/out/cv5/cv5_verification_dataset_lphp10_50.npz" \
   --model all \
   --scenario all \
+  --use_claimed_id \
   --model_dir "$PROJECT_ROOT/models" \
   --out_dir "$PROJECT_ROOT/out/cv5/results"
