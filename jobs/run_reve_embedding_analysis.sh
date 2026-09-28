@@ -1,4 +1,11 @@
 #!/bin/bash
+#SBATCH --partition=gpu
+#SBATCH --nodelist=gpu006
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=32G
+#SBATCH --time=04:00:00
+#SBATCH --output=/home/rizk_lab/shared/kiran/VRvsPC_analysis/jobs/logs/reve_embedding_analysis_%j.out
+#SBATCH --error=/home/rizk_lab/shared/kiran/VRvsPC_analysis/jobs/logs/reve_embedding_analysis_%j.err
 
 set -eo pipefail
 
@@ -8,6 +15,10 @@ CACHE_DIR="$PROJECT_ROOT/out/cv5/cache/reve"
 OUTPUT_DIR="$PROJECT_ROOT/reve_embedding_analysis"
 
 cd "$PROJECT_ROOT"
+
+echo "hostname: $(hostname)"
+echo "SLURM job ID: ${SLURM_JOB_ID:-unknown}"
+echo "date: $(date)"
 
 source /home/usd.local/kiran.prasannannair/miniforge3/etc/profile.d/conda.sh
 set +u
@@ -25,6 +36,7 @@ if [ ! -d "$CACHE_DIR" ]; then
 fi
 
 export MPLBACKEND=Agg
+export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-8}"
 
 python analyze_reve_embeddings.py \
   --cv5_npz "$CV5_NPZ" \
