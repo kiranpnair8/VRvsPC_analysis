@@ -18,8 +18,8 @@ Thumbs.db
 out/
 *.npz
 
-# Model weights
-models/**/model.safetensors
+# Local model files
+models/
 *.pt
 *.pth
 *.ckpt
@@ -27,6 +27,7 @@ models/**/model.safetensors
 *.safetensors
 
 # Logs / temp files
+jobs/logs/
 *.log
 *.tmp
 
@@ -37,6 +38,4 @@ models/**/model.safetensors
 *.7z
 
 # Jupyter
-.ipynb_checkpoints/jobs/logs/*.out
-jobs/logs/*.err
-jobs/logs/*.out
+.ipynb_checkpoints/
