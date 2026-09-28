@@ -48,4 +48,3 @@ python analyze_reve_embeddings.py \
   --bootstrap_repeats 1000 \
   --bootstrap_ci_repeats 10000 \
   --dpi 300
-
