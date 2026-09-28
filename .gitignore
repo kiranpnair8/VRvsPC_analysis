@@ -17,6 +17,7 @@ Thumbs.db
 # Local datasets / generated arrays
 out/
 *.npz
+reve_embedding_analysis/
 
 # Local model files
 models/
@@ -39,3 +40,4 @@ jobs/logs/
 
 # Jupyter
 .ipynb_checkpoints/
+
