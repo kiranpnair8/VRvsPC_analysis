@@ -156,13 +156,13 @@ def plot(frame: pd.DataFrame, out_dir: Path, dpi: int) -> tuple[Path, Path]:
     fig.legend(
         handles=legend_handles,
         loc="upper center",
-        bbox_to_anchor=(0.5, 1.02),
+        bbox_to_anchor=(0.5, 0.965),
         ncol=2,
         frameon=False,
         handletextpad=0.45,
         columnspacing=1.4,
     )
-    fig.subplots_adjust(left=0.09, right=0.985, bottom=0.18, top=0.78, wspace=0.32)
+    fig.subplots_adjust(left=0.09, right=0.985, bottom=0.18, top=0.82, wspace=0.32)
 
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = out_dir / "subject_centroid_distance_comparison_paper"
