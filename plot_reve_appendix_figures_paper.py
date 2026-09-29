@@ -284,10 +284,21 @@ def plot_subject_pca(
 
     legend_ax = fig.add_subplot(grid[5, 1:4])
     legend_ax.axis("off")
+    legend_handles = environment_handles(marker_size=7.5)
+    legend_handles.extend(
+        [
+            Line2D(
+                [0], [0], marker="X", linestyle="", color=ENV_COLORS[environment],
+                markeredgecolor="white", markeredgewidth=0.65,
+                label=f"{environment} centroid", markersize=7.5,
+            )
+            for environment in ("PC", "VR")
+        ]
+    )
     legend_ax.legend(
-        handles=environment_handles(marker_size=7.5), title="Environment",
-        loc="center", ncol=2, frameon=False, fontsize=10.0,
-        title_fontsize=10.5, columnspacing=2.0, handletextpad=0.55,
+        handles=legend_handles, title="Environment",
+        loc="center", ncol=4, frameon=False, fontsize=10.0,
+        title_fontsize=10.5, columnspacing=1.15, handletextpad=0.45,
         borderaxespad=0,
     )
     fig.supxlabel(x_label, y=0.025)
