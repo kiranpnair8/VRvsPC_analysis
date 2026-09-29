@@ -248,10 +248,14 @@ def plot_subject_pca(
     frame: pd.DataFrame, explained: np.ndarray, analysis_dir: Path, dpi: int
 ) -> dict[str, str]:
     x_label, y_label = variance_labels(explained)
-    fig, axes = plt.subplots(
-        7, 3, figsize=(7.1, 12.8), sharex=True, sharey=True
-    )
-    for subject, ax in enumerate(axes.ravel()):
+    fig = plt.figure(figsize=(7.1, 9.2))
+    grid = fig.add_gridspec(6, 4)
+    axes = []
+    for subject in range(EXPECTED_SUBJECTS):
+        row, column = divmod(subject, 4)
+        shared = axes[0] if axes else None
+        ax = fig.add_subplot(grid[row, column], sharex=shared, sharey=shared)
+        axes.append(ax)
         subject_rows = frame[frame["subject_label"] == subject]
         if len(subject_rows) != EXPECTED_PER_SUBJECT:
             raise AssertionError(f"Subject {subject}: expected 240 PCA rows")
@@ -273,26 +277,23 @@ def plot_subject_pca(
             )
         ax.set_title(f"Subject {subject + 1}", fontweight="semibold", pad=3.5)
         style_axis(ax)
+        ax.tick_params(
+            labelleft=(column == 0),
+            labelbottom=(row == 4 or subject == EXPECTED_SUBJECTS - 1),
+        )
 
-    legend_handles = environment_handles()
-    legend_handles.extend(
-        [
-            Line2D(
-                [0], [0], marker="X", linestyle="", color=ENV_COLORS[environment],
-                markeredgecolor="white", markeredgewidth=0.65,
-                label=f"{environment} centroid", markersize=6.5,
-            )
-            for environment in ("PC", "VR")
-        ]
-    )
-    fig.legend(
-        handles=legend_handles, loc="upper center", bbox_to_anchor=(0.5, 0.995),
-        ncol=4, frameon=False, columnspacing=1.15, handletextpad=0.40,
+    legend_ax = fig.add_subplot(grid[5, 1:4])
+    legend_ax.axis("off")
+    legend_ax.legend(
+        handles=environment_handles(marker_size=7.5), title="Environment",
+        loc="center", ncol=2, frameon=False, fontsize=10.0,
+        title_fontsize=10.5, columnspacing=2.0, handletextpad=0.55,
+        borderaxespad=0,
     )
     fig.supxlabel(x_label, y=0.025)
     fig.supylabel(y_label, x=0.018)
     fig.subplots_adjust(
-        left=0.09, right=0.99, bottom=0.055, top=0.963, hspace=0.34, wspace=0.16
+        left=0.09, right=0.99, bottom=0.06, top=0.985, hspace=0.36, wspace=0.18
     )
     return save_figure(fig, analysis_dir / "pca_per_subject_pc_vs_vr_paper", dpi)
 
@@ -418,7 +419,7 @@ def main() -> None:
             "dpi": args.dpi,
             "figures": {
                 "global_pca_inches": [7.1, 4.8],
-                "per_subject_pca_inches": [7.1, 12.8],
+                "per_subject_pca_inches": [7.1, 9.2],
                 "tsne_inches": [7.1, 4.05],
             },
             "markers": {
@@ -440,13 +441,18 @@ def main() -> None:
                 "tick_label_points": STYLE["xtick.labelsize"],
                 "legend_points": STYLE["legend.fontsize"],
                 "global_pca_legend": "inside upper right",
-                "per_subject_pca_legend": "shared upper center, four columns",
+                "per_subject_pca_legend": "dedicated final-row area spanning columns 2--4",
                 "tsne_environment_legends": "inside upper right of each panel",
                 "tsne_subject_legend": "centered below both panels, eleven columns by two rows",
             },
             "figure_validation": {
                 "global_pca_points": EXPECTED_TOTAL,
                 "per_subject_pca_panels": EXPECTED_SUBJECTS,
+                "per_subject_pca_grid": "four columns by six rows",
+                "per_subject_pca_subjects_1_to_20": "first five complete rows",
+                "per_subject_pca_subject_21": "final row, first column",
+                "per_subject_pca_final_row_legend": "columns 2--4",
+                "per_subject_pca_top_legend": False,
                 "per_subject_pca_points_per_panel": EXPECTED_PER_SUBJECT,
                 "per_subject_pca_pc_per_panel": EXPECTED_PER_SUBJECT_ENVIRONMENT,
                 "per_subject_pca_vr_per_panel": EXPECTED_PER_SUBJECT_ENVIRONMENT,
