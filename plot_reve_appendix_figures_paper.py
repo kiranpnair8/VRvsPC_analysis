@@ -305,7 +305,7 @@ def padded_limits(values: np.ndarray, fraction: float = 0.035) -> tuple[float, f
 
 
 def plot_tsne(frame: pd.DataFrame, analysis_dir: Path, dpi: int) -> dict[str, str]:
-    fig, axes = plt.subplots(1, 2, figsize=(7.1, 4.35), sharex=True, sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(7.1, 4.05), sharex=True, sharey=True)
     x_limits = padded_limits(frame["tSNE1"].to_numpy(dtype=float))
     y_limits = padded_limits(frame["tSNE2"].to_numpy(dtype=float))
 
@@ -359,17 +359,17 @@ def plot_tsne(frame: pd.DataFrame, analysis_dir: Path, dpi: int) -> dict[str, st
         for subject in range(EXPECTED_SUBJECTS)
     ]
     # Matplotlib fills legend columns first. Reorder handles so the visible
-    # rows read 1--7, 8--14, and 15--21 from left to right.
-    subject_handles = [
-        subject_handles_by_id[row * 7 + column]
-        for column in range(7)
-        for row in range(3)
-    ]
-    axes[1].legend(
+    # rows read 1--11 and 12--21 from left to right.
+    subject_handles = []
+    for column in range(11):
+        subject_handles.append(subject_handles_by_id[column])
+        if column < 10:
+            subject_handles.append(subject_handles_by_id[11 + column])
+    fig.legend(
         handles=subject_handles, title="Subject", loc="upper center",
-        bbox_to_anchor=(0.5, -0.20), ncol=7, frameon=False,
-        columnspacing=0.55, handletextpad=0.18, borderaxespad=0,
-        labelspacing=0.35,
+        bbox_to_anchor=(0.5, 0.145), ncol=11, frameon=False,
+        columnspacing=0.48, handletextpad=0.14, borderaxespad=0,
+        labelspacing=0.24,
     )
 
     for ax in axes:
@@ -378,7 +378,7 @@ def plot_tsne(frame: pd.DataFrame, analysis_dir: Path, dpi: int) -> dict[str, st
         ax.set_xlabel("t-SNE 1")
         style_axis(ax)
     axes[0].set_ylabel("t-SNE 2")
-    fig.subplots_adjust(left=0.09, right=0.99, bottom=0.27, top=0.94, wspace=0.16)
+    fig.subplots_adjust(left=0.09, right=0.99, bottom=0.23, top=0.95, wspace=0.16)
     return save_figure(fig, analysis_dir / "tsne_global_pc_vs_vr_paper", dpi)
 
 
@@ -419,7 +419,7 @@ def main() -> None:
             "figures": {
                 "global_pca_inches": [7.1, 4.8],
                 "per_subject_pca_inches": [7.1, 12.8],
-                "tsne_inches": [7.1, 4.35],
+                "tsne_inches": [7.1, 4.05],
             },
             "markers": {
                 "PC": "blue circle",
@@ -442,7 +442,7 @@ def main() -> None:
                 "global_pca_legend": "inside upper right",
                 "per_subject_pca_legend": "shared upper center, four columns",
                 "tsne_environment_legends": "inside upper right of each panel",
-                "tsne_subject_legend": "below right panel, seven columns by three rows",
+                "tsne_subject_legend": "centered below both panels, eleven columns by two rows",
             },
             "figure_validation": {
                 "global_pca_points": EXPECTED_TOTAL,
