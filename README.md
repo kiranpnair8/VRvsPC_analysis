@@ -167,3 +167,16 @@ Dataset splits are subject-independent
 6. Contact
 
 For questions or reproduction issues, please contact the authors via the email provided in the paper.
+
+## CV5 Frozen REVE Enrollment Geometry
+
+`analyze_reve_genuine_impostor_geometry_cv5.py` is a CPU-only embedding-space
+analysis using the existing CV5 folds and saved 512-D embeddings. Enrollment
+centroids contain only current-fold training epochs; each held-out epoch is
+compared with its own centroid and all 20 nonmatching identities. Lower distance
+means more genuine-like, and d-prime uses impostor mean minus genuine mean.
+Statistical tests use 21 participant averages across five folds. Analytical
+embedding-space EER is distinct from supervised verifier EER; no verifier output
+scores or new training are used. See [REVE_GEOMETRY_CV5.md](REVE_GEOMETRY_CV5.md)
+for the CPU command, formulas, provenance checks, and figure/output definitions.
+
